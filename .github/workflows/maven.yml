@@ -12,11 +12,11 @@ jobs:
     runs-on: sai  # your self-hosted runner
 
     steps:
-      # Step 1: Checkout
+      # Step 1: Checkout the repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Verify Versions
+      # Step 2: Verify Java, Maven, and Trivy versions
       - name: Verify Versions
         run: |
           echo "Java version:"
@@ -26,32 +26,33 @@ jobs:
           echo "Trivy version:"
           trivy --version
 
-      # Step 3: Compile
+      # Step 3: Compile the project
       - name: Compile with Maven
         run: mvn clean compile
 
-      # Step 4: Run tests
+      # Step 4: Run Maven tests
       - name: Run Maven tests
         run: mvn test
 
-      # Step 5: Trivy FS Scan
+      # Step 5: Trivy File System Scan
       - name: Trivy FS Scan
         run: |
           echo "Starting Trivy FS scan..."
-          # Console output table
+          # Output to console
           trivy fs --format table .
           # Save JSON report
           trivy fs --format json -o trivy-fs-report.json .
           echo "Trivy FS scan JSON report generated: trivy-fs-report.json"
 
-      # Step 6: Fail on high/critical
+      # Step 6: Fail on high/critical vulnerabilities
       - name: Fail on High/Critical Vulnerabilities
         run: |
           echo "Checking for high or critical vulnerabilities..."
           trivy fs --severity HIGH,CRITICAL --exit-code 1 --quiet .
 
-      # Step 7: Upload Report
+      # Step 7: Upload Trivy JSON Report (always runs)
       - name: Upload Trivy JSON Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-report
