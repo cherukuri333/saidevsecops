@@ -1,4 +1,4 @@
-name: Java Compile, Test, and Trivy Scan
+name: Java Build, Test, and Trivy Scan
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
       - name: Trivy FS Scan
         run: |
           echo "Starting Trivy FS scan..."
-          # Output to console
+          # Output to console table
           trivy fs --format table .
           # Save JSON report
           trivy fs --format json -o trivy-fs-report.json .
@@ -57,3 +57,7 @@ jobs:
         with:
           name: trivy-fs-report
           path: trivy-fs-report.json
+
+      # Step 8: Package the project (after Trivy scan)
+      - name: Package with Maven
+        run: mvn package -DskipTests
