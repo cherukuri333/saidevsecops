@@ -12,11 +12,11 @@ jobs:
     runs-on: sai  # your self-hosted runner
 
     steps:
-      # Step 1: Checkout the repo
+      # Step 1: Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Verify Java, Maven, and Trivy versions
+      # Step 2: Verify Versions
       - name: Verify Versions
         run: |
           echo "Java version:"
@@ -26,34 +26,33 @@ jobs:
           echo "Trivy version:"
           trivy --version
 
-      # Step 3: Compile the project
+      # Step 3: Compile
       - name: Compile with Maven
         run: mvn clean compile
 
-      # Step 4: Run Maven tests
+      # Step 4: Run tests
       - name: Run Maven tests
         run: mvn test
 
-      # Step 5: Trivy File System Scan (console output + HTML report)
+      # Step 5: Trivy FS Scan
       - name: Trivy FS Scan
         run: |
           echo "Starting Trivy FS scan..."
-          # Print results in console
+          # Console output table
           trivy fs --format table .
-          # Generate HTML report
-          trivy fs --format html -o trivy-fs-report.html .
-          echo "Trivy scan complete. Report generated: trivy-fs-report.html"
+          # Save JSON report
+          trivy fs --format json -o trivy-fs-report.json .
+          echo "Trivy FS scan JSON report generated: trivy-fs-report.json"
 
-      # Step 6: Fail workflow if high/critical vulnerabilities found
+      # Step 6: Fail on high/critical
       - name: Fail on High/Critical Vulnerabilities
         run: |
           echo "Checking for high or critical vulnerabilities..."
           trivy fs --severity HIGH,CRITICAL --exit-code 1 --quiet .
-        continue-on-error: false
 
-      # Step 7: Upload Trivy HTML report as artifact
-      - name: Upload Trivy HTML Report
+      # Step 7: Upload Report
+      - name: Upload Trivy JSON Report
         uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-report
-          path: trivy-fs-report.html
+          path: trivy-fs-report.json
