@@ -1,4 +1,4 @@
-name: Java Build, Test, and Trivy Scan
+name: Java Build, Test, Trivy & GitLeaks Scan
 
 on:
   push:
@@ -12,11 +12,27 @@ jobs:
     runs-on: sai  # your self-hosted runner
 
     steps:
-      # Step 1: Checkout the repo
+
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Verify Java, Maven, and Trivy versions
+      # Step 2: GitLeaks scan for secrets
+      - name: GitLeaks Scan
+        uses: zricethezav/gitleaks-action@v9
+        with:
+          args: detect --source . --report-format json --report-path gitleaks-report.json
+
+      # Step 3: Fail workflow if GitLeaks finds secrets
+      - name: Fail on GitLeaks findings
+        if: success()
+        run: |
+          if [ -s gitleaks-report.json ]; then
+            echo "Secrets detected by GitLeaks! Failing workflow."
+            exit 1
+          fi
+
+      # Step 4: Verify Java, Maven, Trivy, and GitLeaks versions
       - name: Verify Versions
         run: |
           echo "Java version:"
@@ -25,32 +41,34 @@ jobs:
           mvn -version
           echo "Trivy version:"
           trivy --version
+          echo "GitLeaks version:"
+          /usr/local/bin/gitleaks version
 
-      # Step 3: Compile the project
+      # Step 5: Compile the project
       - name: Compile with Maven
         run: mvn clean compile
 
-      # Step 4: Run Maven tests
+      # Step 6: Run Maven tests
       - name: Run Maven tests
         run: mvn test
 
-      # Step 5: Trivy File System Scan
+      # Step 7: Trivy File System Scan
       - name: Trivy FS Scan
         run: |
           echo "Starting Trivy FS scan..."
-          # Output to console table
+          # Console output
           trivy fs --format table .
-          # Save JSON report
+          # JSON report
           trivy fs --format json -o trivy-fs-report.json .
           echo "Trivy FS scan JSON report generated: trivy-fs-report.json"
 
-      # Step 6: Fail on high/critical vulnerabilities
+      # Step 8: Fail on high/critical vulnerabilities
       - name: Fail on High/Critical Vulnerabilities
         run: |
           echo "Checking for high or critical vulnerabilities..."
           trivy fs --severity HIGH,CRITICAL --exit-code 1 --quiet .
 
-      # Step 7: Upload Trivy JSON Report (always runs)
+      # Step 9: Upload Trivy JSON Report (always runs)
       - name: Upload Trivy JSON Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,6 +76,14 @@ jobs:
           name: trivy-fs-report
           path: trivy-fs-report.json
 
-      # Step 8: Package the project (after Trivy scan)
+      # Step 10: Upload GitLeaks JSON Report (always runs)
+      - name: Upload GitLeaks JSON Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+      # Step 11: Package the project (after Trivy scan)
       - name: Package with Maven
         run: mvn package -DskipTests
