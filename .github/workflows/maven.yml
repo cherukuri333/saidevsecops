@@ -34,9 +34,26 @@ jobs:
       - name: Run Maven tests
         run: mvn test
 
-      # Step 5: Trivy File System Scan
-      - name: Trivy File System Scan
+      # Step 5: Trivy File System Scan (console output + HTML report)
+      - name: Trivy FS Scan
         run: |
           echo "Starting Trivy FS scan..."
-          trivy fs --format table -o trivy-fs-report.html .
+          # Print results in console
+          trivy fs --format table .
+          # Generate HTML report
+          trivy fs --format html -o trivy-fs-report.html .
           echo "Trivy scan complete. Report generated: trivy-fs-report.html"
+
+      # Step 6: Fail workflow if high/critical vulnerabilities found
+      - name: Fail on High/Critical Vulnerabilities
+        run: |
+          echo "Checking for high or critical vulnerabilities..."
+          trivy fs --severity HIGH,CRITICAL --exit-code 1 --quiet .
+        continue-on-error: false
+
+      # Step 7: Upload Trivy HTML report as artifact
+      - name: Upload Trivy HTML Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-fs-report
+          path: trivy-fs-report.html
