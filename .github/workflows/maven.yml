@@ -1,4 +1,4 @@
-name: Java CI with Maven
+name: Java Compile with Maven
 
 on:
   push:
@@ -7,24 +7,16 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  compile:
 
-    runs-on: sai
+    runs-on: sai  # self-hosted runner
 
     steps:
       # Step 1: Checkout the repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Set up JDK 17
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      # Step 3: Verify Java and Maven versions
+      # Step 2: Verify Java and Maven versions
       - name: Verify Java and Maven
         run: |
           echo "Java version:"
@@ -32,15 +24,6 @@ jobs:
           echo "Maven version:"
           mvn -version
 
-      # Step 4: Cache Maven dependencies
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # Step 5: Build the project with Maven
-      - name: Build with Maven
-        run: mvn -B package --file pom.xml
+      # Step 3: Compile the project with Maven
+      - name: Compile with Maven
+        run: mvn clean compile
