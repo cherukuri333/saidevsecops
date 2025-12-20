@@ -17,11 +17,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: GitLeaks scan for secrets
+      # Step 2: GitLeaks scan for secrets using standalone binary
       - name: GitLeaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          args: detect --source . --report-format json --report-path gitleaks-report.json
+        run: |
+          /usr/local/bin/gitleaks detect \
+            --source . \
+            --report-format json \
+            --report-path gitleaks-report.json
 
       # Step 3: Fail workflow if GitLeaks finds secrets
       - name: Fail on GitLeaks findings
@@ -56,9 +58,7 @@ jobs:
       - name: Trivy FS Scan
         run: |
           echo "Starting Trivy FS scan..."
-          # Console output
           trivy fs --format table .
-          # JSON report
           trivy fs --format json -o trivy-fs-report.json .
           echo "Trivy FS scan JSON report generated: trivy-fs-report.json"
 
