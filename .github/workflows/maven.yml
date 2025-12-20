@@ -20,18 +20,23 @@ jobs:
       # Step 2: GitLeaks scan for secrets using standalone binary
       - name: GitLeaks Scan
         run: |
+          echo "Starting GitLeaks scan..."
           /usr/local/bin/gitleaks detect \
             --source . \
             --report-format json \
-            --report-path gitleaks-report.json
+            --report-path gitleaks-report.json \
+            || true  # prevent exit code from failing step automatically
+          echo "GitLeaks JSON report:"
+          cat gitleaks-report.json
 
       # Step 3: Fail workflow if GitLeaks finds secrets
       - name: Fail on GitLeaks findings
-        if: success()
         run: |
           if [ -s gitleaks-report.json ]; then
             echo "Secrets detected by GitLeaks! Failing workflow."
             exit 1
+          else
+            echo "No secrets found by GitLeaks."
           fi
 
       # Step 4: Verify Java, Maven, Trivy, and GitLeaks versions
