@@ -1,13 +1,13 @@
 package com.sai.sample_app;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootApplication
-public class SampleAppApplication {
+@SpringBootTest
+class SampleAppApplicationTests {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SampleAppApplication.class, args);
-	}
-
+    @Test
+    void contextLoads() {
+        // Verifies that Spring application context starts successfully
+    }
 }
