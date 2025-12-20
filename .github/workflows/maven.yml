@@ -26,14 +26,11 @@ jobs:
 
       # 🔹 SonarQube Analysis
       - name: SonarQube Analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           mvn sonar:sonar \
             -Dsonar.projectKey=java-sample-app \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.host.url=http://34.205.33.83:9000 \
+            -Dsonar.login=squ_05f9ab8debfcaec5f4b60640de1cf9cbbf4261ff
 
       # 🔹 Scan the ACTUAL build artifact
       - name: Trivy Scan Build Artifact (JAR)
