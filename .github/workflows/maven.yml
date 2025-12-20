@@ -1,4 +1,4 @@
-name: Java Compile and Test with Maven
+name: Java Compile, Test, and Trivy Scan
 
 on:
   push:
@@ -16,18 +16,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Verify Java and Maven versions
-      - name: Verify Java and Maven
+      # Step 2: Verify Java, Maven, and Trivy versions
+      - name: Verify Versions
         run: |
           echo "Java version:"
           java -version
           echo "Maven version:"
           mvn -version
+          echo "Trivy version:"
+          trivy --version
 
       # Step 3: Compile the project
       - name: Compile with Maven
         run: mvn clean compile
 
-      # Step 4: Run tests
+      # Step 4: Run Maven tests
       - name: Run Maven tests
         run: mvn test
+
+      # Step 5: Trivy File System Scan
+      - name: Trivy File System Scan
+        run: |
+          echo "Starting Trivy FS scan..."
+          trivy fs --format table -o trivy-fs-report.html .
+          echo "Trivy scan complete. Report generated: trivy-fs-report.html"
