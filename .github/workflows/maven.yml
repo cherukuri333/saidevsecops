@@ -1,4 +1,4 @@
-name: Java Build, Test & Trivy Artifact Scan
+name: Java Build, Test, SonarQube & Trivy Artifact Scan
 
 on:
   push:
@@ -8,10 +8,9 @@ on:
 
 jobs:
   build:
-    runs-on: sai  # self-hosted runner
+    runs-on: sai   # self-hosted runner
 
     steps:
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -21,9 +20,20 @@ jobs:
           mvn -version
           trivy --version
 
-      # 🔹 Single Maven build (compile + test + package)
+      # 🔹 Build + Test + Package (single build)
       - name: Build & Test with Maven
         run: mvn clean package
+
+      # 🔹 SonarQube Analysis
+      - name: SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=java-sample-app \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN
 
       # 🔹 Scan the ACTUAL build artifact
       - name: Trivy Scan Build Artifact (JAR)
