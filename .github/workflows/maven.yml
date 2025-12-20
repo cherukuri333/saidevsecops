@@ -1,4 +1,4 @@
-name: Java Build, Test & Trivy Artifact Scan.
+name: Java Build, Test & Trivy Artifact Scan
 
 on:
   push:
