@@ -1,4 +1,4 @@
-name: Java Compile with Maven
+name: Java Compile and Test with Maven
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
     branches: [ "main" ]
 
 jobs:
-  compile:
+  build:
 
-    runs-on: sai  # self-hosted runner
+    runs-on: sai  # your self-hosted runner
 
     steps:
       # Step 1: Checkout the repo
@@ -24,6 +24,10 @@ jobs:
           echo "Maven version:"
           mvn -version
 
-      # Step 3: Compile the project with Maven
+      # Step 3: Compile the project
       - name: Compile with Maven
         run: mvn clean compile
+
+      # Step 4: Run tests
+      - name: Run Maven tests
+        run: mvn test
