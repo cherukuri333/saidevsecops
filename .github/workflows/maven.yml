@@ -1,4 +1,4 @@
-name: Java Build, Test, SonarQube & Trivy Artifact Scan
+name: Java Build, Test, SonarQube & Trivy Artifact Scan.
 
 on:
   push:
