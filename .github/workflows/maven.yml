@@ -1,4 +1,4 @@
-name: Java Build, Test, SonarQube & Trivy Artifact Sc
+name: Java Build, Test, SonarQube & Trivy Artifact Scan
 
 on:
   push:
@@ -11,28 +11,41 @@ jobs:
     runs-on: sai   # self-hosted runner
 
     steps:
+      # 🔹 Checkout with full history (required for SonarQube)
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      # 🔹 Verify tool versions
       - name: Verify Versions
         run: |
           java -version
           mvn -version
           trivy --version
 
-      # 🔹 Build + Test + Package (single build)
+      # 🔹 Build + Test + Package
       - name: Build & Test with Maven
         run: mvn clean package
 
-      # 🔹 SonarQube Analysis
-      - name: SonarQube Analysis
-        run: |
-          mvn sonar:sonar \
-            -Dsonar.projectKey=java-sample-app \
-            -Dsonar.host.url=http://34.205.33.83:9000 \
-            -Dsonar.login=squ_05f9ab8debfcaec5f4b60640de1cf9cbbf4261ff
+      # 🔹 SonarQube Scan
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
-      # 🔹 Scan the ACTUAL build artifact
+      # 🔹 SonarQube Quality Gate (Pipeline will FAIL if gate fails)
+      - name: SonarQube Quality Gate Check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+      # 🔹 Trivy Scan on build artifact
       - name: Trivy Scan Build Artifact (JAR)
         run: |
           echo "Scanning build artifact..."
@@ -42,7 +55,7 @@ jobs:
             --format json \
             -o trivy-artifact-report.json
 
-      # 🔹 Upload report for audit
+      # 🔹 Upload Trivy report
       - name: Upload Trivy Artifact Scan Report
         if: always()
         uses: actions/upload-artifact@v4
