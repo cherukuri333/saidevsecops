@@ -8,7 +8,7 @@ on:
 
 jobs:
   create-ecr-and-role:
-    runs-on: self-hosted
+    runs-on: sai
 
     env:
       AWS_REGION: us-east-1
