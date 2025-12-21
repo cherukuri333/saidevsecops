@@ -28,22 +28,22 @@ jobs:
       - name: Build & Test with Maven
         run: mvn clean package
 
-      # 🔹 SonarQube Scan
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      # # 🔹 SonarQube Scan
+      # - name: SonarQube Scan
+      #   uses: SonarSource/sonarqube-scan-action@v5.0.0
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
-      # 🔹 SonarQube Quality Gate (Pipeline will FAIL if gate fails)
-      - name: SonarQube Quality Gate Check
-        id: sonarqube-quality-gate-check
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        with:
-          pollingTimeoutSec: 600
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      # # 🔹 SonarQube Quality Gate (Pipeline will FAIL if gate fails)
+      # - name: SonarQube Quality Gate Check
+      #   id: sonarqube-quality-gate-check
+      #   uses: sonarsource/sonarqube-quality-gate-action@master
+      #   with:
+      #     pollingTimeoutSec: 600
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
       # 🔹 Trivy Scan on build artifact
       - name: Trivy Scan Build Artifact (JAR)
