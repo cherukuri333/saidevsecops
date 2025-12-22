@@ -1,4 +1,4 @@
-name: 'EKS-Creation-Using-Terraform'
+name: 'ECR-IAM-Roles Terraform'
 
 on:
   workflow_dispatch:
