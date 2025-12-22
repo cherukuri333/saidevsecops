@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.5.0"
 
   backend "s3" {
-    bucket         = "saidevsecops-tf-state"
+    bucket         = "dev-saii-tf-bucket"
     key            = "ecr-iam/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "saidevsecops-tf-lock"
