@@ -1,2 +1,0 @@
-# saidevsecops
-saidevsecops c s
