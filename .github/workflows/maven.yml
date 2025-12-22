@@ -17,7 +17,7 @@ jobs:
       IMAGE_PREFIX: dev
 
     steps:
-      # 🔹 Checkout with full history (required for SonarQube if needed)
+      # 🔹 Checkout code
       - name: Checkout code
         uses: actions/checkout@v5
         with:
@@ -35,7 +35,7 @@ jobs:
       - name: Build & Test with Maven
         run: mvn clean package
 
-      # 🔹 Trivy scan on artifact
+      # 🔹 Trivy scan on artifact (JAR)
       - name: Trivy Scan Build Artifact (JAR)
         run: |
           echo "Scanning build artifact..."
@@ -45,7 +45,7 @@ jobs:
             --format json \
             -o trivy-artifact-report.json
 
-      # 🔹 Upload Trivy report
+      # 🔹 Upload Trivy JAR scan report
       - name: Upload Trivy Artifact Scan Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,7 +84,28 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_NAME=${{ env.ECR_REPO }}:${{ env.NEXT_TAG }}
+          # Adjust path if your Dockerfile is not in repo root
           docker build -t $IMAGE_NAME .
+
+      # 🔹 Trivy scan Docker image
+      - name: Trivy Scan Docker Image
+        run: |
+          IMAGE_NAME=${{ env.ECR_REPO }}:${{ env.NEXT_TAG }}
+          echo "Scanning Docker image $IMAGE_NAME ..."
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format json \
+            -o trivy-docker-report.json \
+            $IMAGE_NAME
+
+      # 🔹 Upload Docker Trivy scan report
+      - name: Upload Docker Trivy Scan Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-docker-report
+          path: trivy-docker-report.json
 
       # 🔹 Push Docker image to ECR
       - name: Push Docker image to ECR
