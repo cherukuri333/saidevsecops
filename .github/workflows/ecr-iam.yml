@@ -1,105 +1,70 @@
-name: Setup AWS ECR and IAM Role
+name: 'EKS-Creation-Using-Terraform'
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - "ecr-iam-creation/**"
+  workflow_dispatch:
+    inputs:
+      tfvars_file:
+        description: 'Path to the .tfvars file'
+        required: true
+        default: 'dev.tfvars'
+      action:
+        type: choice
+        description: 'Terraform Action'
+        options:
+          - plan
+          - apply
+          - destroy
+        required: true
+        default: 'plan'
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+permissions:
+  contents: read
 
 jobs:
-  create-ecr-and-role:
-    runs-on: sai
+  terraform:
+    name: Terraform ${{ github.event.inputs.action }}
+    runs-on: sai        # Ensure your CentOS runner has this label
+    environment: dev
 
-    env:
-      AWS_REGION: us-east-1
-      ECR_REPOSITORY: my-ecr-dev
-      IAM_ROLE_NAME: github-ecr-role-dev
-      POLICY_NAME: github-ecr-push-policy-dev
-      RUNNER_ROLE_ARN: arn:aws:iam::158366596870:role/aws-opsworks-ec2-role
+    defaults:
+      run:
+        shell: bash
+        working-directory: ecr-iam   # Folder containing your Terraform .tf files
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
-
-      - name: Create ECR Repository (idempotent)
+      - name: Verify Terraform
         run: |
-          aws ecr describe-repositories \
-            --repository-names "$ECR_REPOSITORY" \
-          || aws ecr create-repository \
-            --repository-name "$ECR_REPOSITORY" \
-            --region "$AWS_REGION"
+          terraform -v
 
-      - name: Create IAM Role (idempotent)
+      - name: Verify AWS CLI
         run: |
-          TRUST_POLICY=$(cat <<EOF
-          {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Principal": {
-                  "AWS": "$RUNNER_ROLE_ARN"
-                },
-                "Action": "sts:AssumeRole"
-              }
-            ]
-          }
-          EOF
-          )
+          aws --version
 
-          aws iam get-role --role-name "$IAM_ROLE_NAME" >/dev/null 2>&1 || \
-          aws iam create-role \
-            --role-name "$IAM_ROLE_NAME" \
-            --assume-role-policy-document "$TRUST_POLICY"
+      - name: Terraform Init
+        run: terraform init
 
-      - name: Create IAM Policy (idempotent)
-        run: |
-          POLICY_ARN=$(aws iam list-policies \
-            --scope Local \
-            --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" \
-            --output text)
+      - name: Terraform Format Check
+        run: terraform fmt -recursive
 
-          if [ -z "$POLICY_ARN" ]; then
-            POLICY_ARN=$(aws iam create-policy \
-              --policy-name "$POLICY_NAME" \
-              --policy-document "{
-                \"Version\": \"2012-10-17\",
-                \"Statement\": [
-                  {
-                    \"Effect\": \"Allow\",
-                    \"Action\": [
-                      \"ecr:GetAuthorizationToken\",
-                      \"ecr:BatchCheckLayerAvailability\",
-                      \"ecr:InitiateLayerUpload\",
-                      \"ecr:UploadLayerPart\",
-                      \"ecr:CompleteLayerUpload\",
-                      \"ecr:PutImage\",
-                      \"ecr:DescribeRepositories\"
-                    ],
-                    \"Resource\": \"arn:aws:ecr:${AWS_REGION}:${{ secrets.AWS_ACCOUNT_ID }}:repository/${ECR_REPOSITORY}\"
-                  }
-                ]
-              }" \
-              --query "Policy.Arn" \
-              --output text)
-          fi
+      - name: Terraform Validate
+        run: terraform validate
 
-          ATTACHED=$(aws iam list-attached-role-policies --role-name "$IAM_ROLE_NAME" \
-            --query "AttachedPolicies[?PolicyArn=='$POLICY_ARN'].PolicyArn" \
-            --output text)
+      - name: Terraform Plan
+        if: ${{ github.event.inputs.action == 'plan' }}
+        run: terraform plan -var-file=${{ github.event.inputs.tfvars_file }} -input=false
 
-          if [ -z "$ATTACHED" ]; then
-            aws iam attach-role-policy \
-              --role-name "$IAM_ROLE_NAME" \
-              --policy-arn "$POLICY_ARN"
-          fi
+      - name: Terraform Apply
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: terraform apply -auto-approve -var-file=${{ github.event.inputs.tfvars_file }} -input=false
+
+      - name: Terraform Destroy
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        run: terraform destroy -auto-approve -var-file=${{ github.event.inputs.tfvars_file }} -input=false
