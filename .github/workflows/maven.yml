@@ -1,19 +1,25 @@
-name: Java Build, Test, SonarQube & Trivy Artifact Scan.
+name: Java Build, Test, Trivy Scan & Docker Push
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: sai   # self-hosted runner
 
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPO: 143471984294.dkr.ecr.us-east-1.amazonaws.com/sai-dev
+      IMAGE_PREFIX: dev
+
     steps:
-      # 🔹 Checkout with full history (required for SonarQube)
+      # 🔹 Checkout with full history (required for SonarQube if needed)
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -22,30 +28,14 @@ jobs:
         run: |
           java -version
           mvn -version
+          docker --version
           trivy --version
 
-      # 🔹 Build + Test + Package
+      # 🔹 Build & Test Maven project
       - name: Build & Test with Maven
         run: mvn clean package
 
-      # # 🔹 SonarQube Scan
-      # - name: SonarQube Scan
-      #   uses: SonarSource/sonarqube-scan-action@v5.0.0
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-
-      # # 🔹 SonarQube Quality Gate (Pipeline will FAIL if gate fails)
-      # - name: SonarQube Quality Gate Check
-      #   id: sonarqube-quality-gate-check
-      #   uses: sonarsource/sonarqube-quality-gate-action@master
-      #   with:
-      #     pollingTimeoutSec: 600
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-
-      # 🔹 Trivy Scan on build artifact
+      # 🔹 Trivy scan on artifact
       - name: Trivy Scan Build Artifact (JAR)
         run: |
           echo "Scanning build artifact..."
@@ -62,3 +52,42 @@ jobs:
         with:
           name: trivy-artifact-report
           path: trivy-artifact-report.json
+
+      # 🔹 Configure AWS CLI
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ${{ env.AWS_REGION }}
+
+      # 🔹 Login to Amazon ECR
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REPO }}
+
+      # 🔹 Determine next Docker image tag
+      - name: Get next ECR tag
+        id: ecr_tag
+        run: |
+          REPO_NAME=sai-dev
+          TAGS=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*].imageTag' --output text | tr '\t' '\n' | grep '^dev-' || true)
+          if [ -z "$TAGS" ]; then
+            NEXT_TAG="dev-1"
+          else
+            MAX=$(echo "$TAGS" | sed 's/dev-//' | sort -nr | head -n1)
+            NEXT_TAG="dev-$((MAX+1))"
+          fi
+          echo "Next tag: $NEXT_TAG"
+          echo "NEXT_TAG=$NEXT_TAG" >> $GITHUB_ENV
+
+      # 🔹 Build Docker image
+      - name: Build Docker image
+        run: |
+          IMAGE_NAME=${{ env.ECR_REPO }}:${{ env.NEXT_TAG }}
+          docker build -t $IMAGE_NAME .
+
+      # 🔹 Push Docker image to ECR
+      - name: Push Docker image to ECR
+        run: |
+          IMAGE_NAME=${{ env.ECR_REPO }}:${{ env.NEXT_TAG }}
+          docker push $IMAGE_NAME
