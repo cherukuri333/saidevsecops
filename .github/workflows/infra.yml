@@ -29,7 +29,6 @@ jobs:
   terraform:
     name: Terraform ${{ github.event.inputs.action }}
     runs-on: sai       # Self-hosted runner label
-    if: github.ref == 'refs/heads/Infra'   # Only run on Infra branch
 
     defaults:
       run:
