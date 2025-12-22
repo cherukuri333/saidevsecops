@@ -29,7 +29,6 @@ jobs:
   terraform:
     name: Terraform ${{ github.event.inputs.action }}
     runs-on: sai        # Ensure your CentOS runner has this label
-    environment: dev
 
     defaults:
       run:
