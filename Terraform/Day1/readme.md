@@ -1,22 +1,7 @@
-Write Configuration
-      ↓
-Run Terraform CLI
-      ↓
-Initialize Providers & Backend
-      ↓
-Read State File
-      ↓
-Build Dependency Graph
-      ↓
-Generate Execution Plan
-      ↓
-Providers Call Cloud APIs
-      ↓
-Infrastructure Created/Updated
-      ↓
-State File Updated
+<img width="271" height="354" alt="image" src="https://github.com/user-attachments/assets/dcbd8de1-64f0-46e9-ad47-9c409c103532" />
 
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Step 1: You Write Configuration (HCL Files)
 
