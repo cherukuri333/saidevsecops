@@ -108,7 +108,201 @@ resource "aws_ecr_repository" "demo" {
 
 ---
 
-I can generate this **as a ready-to-use Word or PDF with embedded diagrams** (ECR Drift and Flow), so you just open it and share with your team.
+Perfect! Let’s dive deep into **Terraform Execution Graph & Dependency Resolution** with **practical clarity**, diagrams, and examples. This is a key concept for understanding **how Terraform decides the order of resource creation, updates, and deletion**.
 
-Do you want me to create that full **document with images** next?
+---
 
+# **Terraform Execution Graph & Dependency Resolution**
+
+---
+
+## **1️⃣ What is the Execution Graph?**
+
+Terraform **does not execute resources line by line**. Instead:
+
+* It builds a **Directed Acyclic Graph (DAG)** of all resources
+* Determines **dependencies automatically**
+* Runs **independent resources in parallel** for speed
+* Ensures **dependent resources execute in the correct order**
+
+💡 Think of it like a **flow chart**: Terraform analyzes what depends on what, then executes safely.
+
+---
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+## **2️⃣ Dependency Types**
+
+### 2.1 Implicit Dependencies
+
+Automatically detected when you reference another resource:
+
+```hcl
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "subnet1" {
+  vpc_id     = aws_vpc.main.id   # ← Implicit dependency
+  cidr_block = "10.0.1.0/24"
+}
+```
+
+* Terraform knows **subnet1 depends on VPC**
+* Subnet will be created **after VPC**
+
+---
+
+### 2.2 Explicit Dependencies
+
+Sometimes you need to **force dependencies** using `depends_on`:
+
+```hcl
+resource "aws_iam_role_policy_attachment" "example" {
+  role       = aws_iam_role.myrole.name
+  policy_arn = aws_iam_policy.mypolicy.arn
+
+  depends_on = [aws_instance.demo]
+}
+```
+
+* Ensures **IAM attachment happens only after EC2 instance**
+* Useful when Terraform cannot infer dependency
+
+---
+
+## **3️⃣ Execution Graph Example (Simple AWS Setup)**
+
+### Resources
+
+* VPC → Subnet → Security Group → EC2 Instance
+
+```hcl
+resource "aws_vpc" "main" { ... }
+
+resource "aws_subnet" "subnet1" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_security_group" "sg" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_instance" "demo" {
+  subnet_id = aws_subnet.subnet1.id
+  vpc_security_group_ids = [aws_security_group.sg.id]
+}
+```
+
+### Execution Graph (ASCII)
+
+```
+aws_vpc.main
+     │
+ ┌───┴───┐
+ │       │
+aws_subnet.subnet1
+aws_security_group.sg
+     │
+     ▼
+aws_instance.demo
+```
+
+* **VPC** first
+* **Subnet & Security Group** next (parallel)
+* **EC2 Instance** last
+
+---
+
+## **4️⃣ Plan Output & Graph**
+
+Run:
+
+```bash
+terraform plan
+```
+
+Plan shows:
+
+```
+aws_vpc.main          + create
+aws_subnet.subnet1    + create
+aws_security_group.sg + create
+aws_instance.demo     + create
+```
+
+💡 Terraform **determines execution order automatically** using the graph.
+
+---
+
+## **5️⃣ Parallelism in Execution**
+
+Terraform can create **independent resources in parallel**:
+
+```bash
+terraform apply -parallelism=5
+```
+
+* Default: 10
+* Independent resources are applied simultaneously → faster applies
+* Dependent resources are still sequential
+
+---
+
+## **6️⃣ Refresh & Dependency**
+
+* During `plan` or `apply`, Terraform **refreshes state first**
+* Dependencies are resolved on **actual current state**
+* Drift may affect dependency order (if a dependent resource is deleted manually)
+
+---
+
+## **7️⃣ Execution Graph Visualization (Diagram)**
+
+```
+           ┌───────────────┐
+           │  aws_vpc.main │
+           └───────┬───────┘
+                   │
+      ┌────────────┴─────────────┐
+      │                          │
+┌──────────────┐          ┌──────────────┐
+│ aws_subnet   │          │ aws_sg       │
+└──────────────┘          └──────────────┘
+      │                          │
+      └────────────┬─────────────┘
+                   │
+           ┌───────────────┐
+           │ aws_instance  │
+           └───────────────┘
+```
+
+* **Arrows = dependencies**
+* Parallel resources = side by side
+* Sequential = top to bottom
+
+---
+
+## **8️⃣ Real-World Notes**
+
+* Terraform **always builds this DAG internally**
+* Changing a resource **may trigger dependent updates**
+* Understanding the graph helps in:
+
+  * Debugging apply errors
+  * Optimizing parallelism
+  * Predicting which resources will be recreated
+
+---
+
+## **9️⃣ Practical Tip**
+
+To **see a real graph**, you can run:
+
+```bash
+terraform graph | dot -Tpng > graph.png
+```
+
+* Requires `Graphviz` installed (`dot`)
+* Produces a **visual dependency graph**
+* Very useful in large infra
+
+---
