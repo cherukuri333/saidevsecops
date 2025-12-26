@@ -216,3 +216,8 @@ ARNs
 Dependencies
 
 👉 This makes Terraform state-aware for future runs.
+
++++++++++++++++
+
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/f75e6bde-3b92-4d95-9818-13e81e1a5a94" />
+
