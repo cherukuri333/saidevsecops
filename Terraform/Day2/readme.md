@@ -1,10 +1,3 @@
-
-# **Terraform ECR Drift – Practical Guide**
-
----
-
-## **1️⃣ Overview**
-
 **Terraform Drift** occurs when the **real AWS resource differs from Terraform state**.
 
 **Why it matters for ECR:**
