@@ -262,3 +262,11 @@ Ansible   -> Configure OS, install software, manage files
 
 * **Provisioners = last resort**.
 * **Prefer native Terraform resources** or **cloud-init / SSM / external config management**.
+
+
+
++++++++++++++++++++++++++
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/d7eec8ff-16b3-49e9-8a7d-8fb84df0dc57" />
+
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/a09a222d-8bf6-421a-89c6-04b934c64438" />
+
